@@ -1,0 +1,50 @@
+{
+  "name": "fetch-trace",
+  "version": "1.0.0",
+  "description": "HTTP client with detailed timing metrics (DNS, connect, TLS, TTFB, TTLB)",
+  "main": "dist/fetchTrace.js",
+  "types": "dist/fetchTrace.d.ts",
+  "bin": {
+    "fetch-trace": "bin/fetch-trace.js"
+  },
+  "files": [
+    "dist",
+    "bin"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "keywords": [
+    "fetch",
+    "http",
+    "timing",
+    "performance",
+    "metrics",
+    "dns",
+    "ttfb",
+    "ttlb",
+    "trace"
+  ],
+  "author": "Matti Paksula",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/matti/fetch-trace.git"
+  },
+  "bugs": {
+    "url": "https://github.com/matti/fetch-trace/issues"
+  },
+  "homepage": "https://github.com/matti/fetch-trace#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.13",
+    "@types/node": "^22.8.1",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.6.3"
+  }
+}

@@ -1,0 +1,4 @@
+services:
+  fetch-trace:
+    build: .
+    command: ["https://httpbin.org/get"]
