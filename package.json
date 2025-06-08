@@ -1,6 +1,6 @@
 {
   "name": "fetch-trace",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "description": "HTTP client with detailed timing metrics (DNS, connect, TLS, TTFB, TTLB)",
   "main": "dist/fetchTrace.js",
   "types": "dist/fetchTrace.d.ts",
