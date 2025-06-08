@@ -15,7 +15,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-24.04, ubuntu-24.04-arm64]
+        os: [ubuntu-24.04]
         node-version: [18, 20, 22]
 
     steps:
@@ -38,23 +38,12 @@ jobs:
 
   docker-build:
     needs: test
-    runs-on: ${{ matrix.platform.runner }}
+    runs-on: ubuntu-24.04
     if: github.event_name != 'pull_request'
-    strategy:
-      matrix:
-        platform:
-          - runner: ubuntu-24.04
-            arch: amd64
-          - runner: ubuntu-24.04-arm64
-            arch: arm64
 
     permissions:
       contents: read
       packages: write
-
-    outputs:
-      image-digest-amd64: ${{ matrix.platform.arch == 'amd64' && steps.build.outputs.digest || '' }}
-      image-digest-arm64: ${{ matrix.platform.arch == 'arm64' && steps.build.outputs.digest || '' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -87,48 +76,9 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          platforms: linux/${{ matrix.platform.arch }}
+          platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ steps.meta.outputs.tags }}-${{ matrix.platform.arch }}
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-  docker-manifest:
-    needs: docker-build
-    runs-on: ubuntu-24.04
-    if: github.event_name != 'pull_request'
-
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-      - name: Log in to Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=sha
-
-      - name: Create multi-arch manifest
-        run: |
-          for tag in $(echo '${{ steps.meta.outputs.tags }}' | tr '\n' ' '); do
-            docker buildx imagetools create \
-              --tag $tag \
-              $tag-amd64 \
-              $tag-arm64
-          done

@@ -2,6 +2,8 @@
 
 HTTP client with detailed timing metrics for Node.js.
 
+![Demo](demo.gif)
+
 ## Features
 
 - 🔍 **Detailed timing metrics**: DNS, connect, TLS, TTFB, TTLB
