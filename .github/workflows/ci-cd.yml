@@ -110,6 +110,10 @@ jobs:
 
       - name: Update package.json version
         run: |
+          if [[ ! "$GITHUB_REF" =~ ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+            echo "Error: Release tag must start with 'v' and follow semver (e.g., v1.2.3)"
+            exit 1
+          fi
           RELEASE_VERSION=${GITHUB_REF#refs/tags/v}
           npm version $RELEASE_VERSION --no-git-tag-version
 
