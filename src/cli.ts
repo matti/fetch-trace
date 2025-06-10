@@ -1,14 +1,30 @@
 import { fetchTrace } from './fetchTrace';
 import { URL } from 'url';
+import { parseArgs } from 'util';
 
 export const runCli = async () => {
-  let url = process.argv[2];
+  const { values, positionals } = parseArgs({
+    options: {
+      timeout: { type: 'string' }
+    },
+    allowPositionals: true
+  });
+
+  let url = positionals[0];
   if (!url) {
-    console.error('Usage: fetch-trace <url>');
+    console.error('Usage: fetch-trace <url> [--timeout <ms>]');
     process.exit(1);
   }
 
-  // Add http:// if no protocol specified
+  let timeout: number | undefined;
+  if (values.timeout) {
+    timeout = parseInt(values.timeout, 10);
+    if (isNaN(timeout)) {
+      console.error('Error: --timeout must be a number');
+      process.exit(1);
+    }
+  }
+
   if (!url.includes('://')) {
     url = 'http://' + url;
   }
@@ -38,36 +54,62 @@ export const runCli = async () => {
 
     showProgress('dns');
 
-    const response = await fetchTrace(
-      currentUrl,
-      {
-        headers: {
-          'User-Agent':
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
+    let response;
+    try {
+      response = await fetchTrace(
+        currentUrl,
+        {
+          headers: {
+            'User-Agent':
+              'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
+          },
+          timeout,
         },
-      },
-      {
-        on: (event, ms) => {
-          if (currentTimer) {
-            clearInterval(currentTimer);
-            currentTimer = null;
-          }
-          const wallTime = getWallTime();
-          lastWallTime = wallTime;
-          process.stdout.write(`\r\x1b[K${wallTime}ms ${event.padStart(7)} ${ms.toFixed(2)} ms\n`);
+        {
+          on: (event, ms, error) => {
+            if (currentTimer) {
+              clearInterval(currentTimer);
+              currentTimer = null;
+            }
+            const wallTime = getWallTime();
+            lastWallTime = wallTime;
 
-          if (event === 'dns') {
-            showProgress('connect');
-          } else if (event === 'connect') {
-            showProgress('tls');
-          } else if (event === 'tls') {
-            showProgress('ttfb');
-          } else if (event === 'ttfb') {
-            showProgress('ttlb');
-          }
-        },
+            if (event === 'error') {
+              process.stdout.write(`\r\x1b[K${wallTime}ms ${event.padStart(7)} ${error?.message || 'Network error'} (at ${ms.toFixed(2)} ms)\n`);
+              return;
+            }
+
+            if (event === 'timeout') {
+              process.stdout.write(`\r\x1b[K${wallTime}ms ${event.padStart(7)} Request timed out (at ${ms.toFixed(2)} ms)\n`);
+              return;
+            }
+
+            process.stdout.write(`\r\x1b[K${wallTime}ms ${event.padStart(7)} ${ms.toFixed(2)} ms\n`);
+
+            if (event === 'dns') {
+              showProgress('connect');
+            } else if (event === 'connect') {
+              if (currentUrl.startsWith('https:')) {
+                showProgress('tls');
+              } else {
+                showProgress('ttfb');
+              }
+            } else if (event === 'tls') {
+              showProgress('ttfb');
+            } else if (event === 'ttfb') {
+              showProgress('ttlb');
+            }
+          },
+        }
+      );
+    } catch (error) {
+      if (currentTimer) {
+        clearInterval(currentTimer);
+        currentTimer = null;
       }
-    );
+      console.log(`\n${'error'.padStart(7)} ${error instanceof Error ? error.message : 'Unknown error'}`);
+      process.exit(1);
+    }
 
     if (currentTimer) {
       clearInterval(currentTimer);
