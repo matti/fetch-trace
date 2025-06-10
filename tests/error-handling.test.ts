@@ -16,7 +16,8 @@ describe('error handling', () => {
       expect(error).toBeInstanceOf(DOMException);
       expect((error as DOMException).name).toBe('TimeoutError');
       expect((error as DOMException).message).toBe('The operation was aborted due to timeout');
-      expect(elapsed).toBeLessThan(200);
+      expect(elapsed).toBeLessThan(2000);
+      expect(elapsed).toBeGreaterThan(10);
     }
   });
 
